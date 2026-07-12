@@ -311,7 +311,7 @@ var ALL_CARDS = [];
 var CFG       = {};
 var ACTIVE_CHIPS = new Set();
 
-document.addEventListener('DOMContentLoaded', function() {
+function initPage() {
   if (!TRADELIST || !TRADELIST.ok) {
     document.getElementById('content').innerHTML =
       '<div class="empty"><div class="empty-icon">❌</div>'
