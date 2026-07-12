@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trade List — One Piece TCG</title>
+  <meta name="description" content="Carte One Piece TCG disponibili per scambio">
+  <style>
+    :root {
+      --bg:#0f1117; --panel:#1a1d27; --panel2:#22263a;
+      --border:#2d3148; --text:#f0f2ff; --muted:#8892b0;
+      --accent:#4f8ef7; --green:#2ecc71; --yellow:#f1c40f;
+      --red:#e74c3c; --purple:#9b59b6; --orange:#e67e22;
+      --gold:#f39c12; --radius:12px;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+           background:var(--bg); color:var(--text); min-height:100vh; }
+
+    /* ── HEADER ── */
+    .header { background:linear-gradient(135deg,#1a1d27,#0d0f1a);
+              border-bottom:1px solid var(--border); padding:16px 20px;
+              position:sticky; top:0; z-index:100; backdrop-filter:blur(10px); }
+    .header-inner { max-width:1200px; margin:0 auto;
+                    display:flex; align-items:center; justify-content:space-between;
+                    flex-wrap:wrap; gap:12px; }
+    .header-logo  { display:flex; align-items:center; gap:10px; }
+    .logo-icon    { font-size:28px; }
+    .logo-title   { font-size:18px; font-weight:800; color:var(--text); }
+    .logo-sub     { font-size:11px; color:var(--muted); margin-top:1px; }
+
+    .header-links { display:flex; gap:8px; flex-wrap:wrap; }
+    .profile-btn  { display:inline-flex; align-items:center; gap:6px; padding:7px 14px;
+                    border-radius:20px; font-size:12px; font-weight:700;
+                    text-decoration:none; transition:all .2s; }
+    .btn-ct { background:#2563eb22; color:#4f8ef7; border:1px solid #2563eb44; }
+    .btn-ct:hover { background:#2563eb33; }
+    .btn-cm { background:#e67e2222; color:#e67e22; border:1px solid #e67e2244; }
+    .btn-cm:hover { background:#e67e2233; }
+
+    /* ── STATS BAR ── */
+    .stats-bar { background:var(--panel); border-bottom:1px solid var(--border); padding:10px 20px; }
+    .stats-inner{ max-width:1200px; margin:0 auto;
+                  display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+    .stat-item  { font-size:12px; color:var(--muted); }
+    .stat-item strong { color:var(--accent); }
+    .updated-at { margin-left:auto; font-size:11px; color:var(--muted); }
+
+    /* ── FILTRI ── */
+    .filters { background:var(--panel); border-bottom:1px solid var(--border);
+               padding:12px 20px; position:sticky; top:64px; z-index:90; }
+    .filters-inner { max-width:1200px; margin:0 auto; }
+    .filter-row    { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .search-input  { flex:1; min-width:200px; padding:9px 14px; border-radius:20px;
+                     border:1px solid var(--border); background:var(--panel2);
+                     color:var(--text); font-size:13px; outline:none; }
+    .search-input:focus { border-color:var(--accent); }
+    .search-input::placeholder { color:var(--muted); }
+    .filter-select { padding:8px 12px; border-radius:20px; border:1px solid var(--border);
+                     background:var(--panel2); color:var(--text); font-size:12px;
+                     outline:none; cursor:pointer; }
+    .filter-select:focus { border-color:var(--accent); }
+    .filter-chips  { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+    .chip { padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700;
+            cursor:pointer; border:1px solid var(--border); background:var(--panel2);
+            color:var(--muted); transition:all .15s; }
+    .chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .chip:hover  { border-color:var(--accent); color:var(--accent); }
+    .results-count { font-size:11px; color:var(--muted); margin-top:6px; }
+
+    /* ── GRIGLIA CARTE ── */
+    .main { max-width:1200px; margin:0 auto; padding:20px; }
+    .grid { display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+            gap:14px; }
+
+    /* ── CARD ── */
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+            overflow:hidden; transition:all .2s; cursor:pointer; position:relative; }
+    .card:hover { border-color:var(--accent); transform:translateY(-3px);
+                  box-shadow:0 8px 24px rgba(79,142,247,.15); }
+    .card-img-wrap { position:relative; aspect-ratio:2/3; background:var(--panel2);
+                     overflow:hidden; }
+    .card-img  { width:100%; height:100%; object-fit:cover; transition:transform .3s; }
+    .card:hover .card-img { transform:scale(1.04); }
+    .card-img-placeholder { width:100%; height:100%; display:flex; align-items:center;
+                             justify-content:center; font-size:32px; color:var(--muted); }
+
+    /* Badge overlay sull'immagine */
+    .badge-overlay { position:absolute; top:6px; left:6px; display:flex; flex-direction:column; gap:3px; }
+    .badge-foil    { background:linear-gradient(135deg,#f39c12,#f1c40f);
+                     color:#000; padding:2px 7px; border-radius:10px; font-size:9px;
+                     font-weight:800; letter-spacing:.05em; }
+    .badge-qty     { background:rgba(0,0,0,.7); color:#fff; padding:2px 7px;
+                     border-radius:10px; font-size:9px; font-weight:700;
+                     backdrop-filter:blur(4px); }
+    .badge-art     { background:rgba(155,89,182,.8); color:#fff; padding:2px 7px;
+                     border-radius:10px; font-size:8px; font-weight:700; }
+
+    /* Condizione badge in basso a destra */
+    .badge-cond { position:absolute; bottom:6px; right:6px; padding:3px 8px;
+                  border-radius:10px; font-size:10px; font-weight:800;
+                  backdrop-filter:blur(4px); }
+    .cond-NM { background:rgba(46,204,113,.85); color:#fff; }
+    .cond-LP { background:rgba(241,196,15,.85); color:#000; }
+    .cond-MP { background:rgba(231,76,60,.85); color:#fff; }
+    .cond-HP { background:rgba(142,68,173,.85); color:#fff; }
+
+    /* Info sotto l'immagine */
+    .card-body  { padding:10px; }
+    .card-code  { font-size:10px; color:var(--muted); font-family:monospace;
+                  margin-bottom:3px; }
+    .card-name  { font-size:12px; font-weight:700; line-height:1.3;
+                  margin-bottom:6px; color:var(--text); }
+    .card-set   { font-size:10px; color:var(--muted); margin-bottom:8px; }
+    .card-footer{ display:flex; align-items:center; justify-content:space-between; }
+    .card-price { font-size:16px; font-weight:800; color:var(--green); }
+    .card-price-lbl { font-size:8px; color:var(--muted); }
+    .card-rar   { padding:2px 7px; border-radius:8px; font-size:10px; font-weight:700; }
+    .rar-SEC { background:#9b59b622; color:#9b59b6; border:1px solid #9b59b644; }
+    .rar-SR  { background:#4f8ef722; color:#4f8ef7; border:1px solid #4f8ef744; }
+    .rar-R   { background:#2ecc7122; color:#2ecc71; border:1px solid #2ecc7144; }
+    .rar-UC  { background:#ffffff11; color:#aaa;    border:1px solid #ffffff22; }
+    .rar-C   { background:#ffffff08; color:#888;    border:1px solid #ffffff15; }
+    .rar-L   { background:#e74c3c22; color:#e74c3c; border:1px solid #e74c3c44; }
+    .rar-SP  { background:#f39c1222; color:#f39c12; border:1px solid #f39c1244; }
+    .rar-SAR { background:#f39c1222; color:#f39c12; border:1px solid #f39c1244; }
+
+    /* ── SEZIONE SET ── */
+    .set-section { margin-bottom:28px; }
+    .set-header  { display:flex; align-items:center; gap:10px; margin-bottom:12px;
+                   padding-bottom:8px; border-bottom:1px solid var(--border); }
+    .set-name    { font-size:15px; font-weight:800; }
+    .set-count   { font-size:12px; color:var(--muted); }
+    .set-line    { flex:1; height:1px; background:var(--border); }
+
+    /* ── MODAL ── */
+    .modal-bg  { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200;
+                 display:flex; align-items:center; justify-content:center;
+                 padding:20px; opacity:0; pointer-events:none; transition:opacity .2s; }
+    .modal-bg.open { opacity:1; pointer-events:auto; }
+    .modal     { background:var(--panel); border:1px solid var(--border); border-radius:16px;
+                 max-width:460px; width:100%; max-height:90vh; overflow-y:auto; }
+    .modal-img { width:100%; aspect-ratio:2/3; object-fit:contain; background:var(--panel2);
+                 border-radius:16px 16px 0 0; }
+    .modal-body{ padding:16px; }
+    .modal-code{ font-family:monospace; font-size:11px; color:var(--muted); }
+    .modal-name{ font-size:18px; font-weight:800; margin:4px 0 8px; }
+    .modal-pills{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+    .modal-pill { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+    .pill-set  { background:var(--panel2); color:var(--muted); }
+    .pill-lang { background:var(--panel2); color:var(--muted); }
+    .modal-price-box { background:var(--panel2); border-radius:10px; padding:14px;
+                       display:flex; align-items:center; justify-content:space-between;
+                       margin-bottom:12px; }
+    .modal-price     { font-size:28px; font-weight:800; color:var(--green); }
+    .modal-price-lbl { font-size:11px; color:var(--muted); }
+    .modal-qty       { font-size:14px; font-weight:700; color:var(--accent); }
+    .modal-note      { font-size:12px; color:var(--muted); padding:8px 10px;
+                       background:var(--panel2); border-radius:8px; margin-bottom:12px; }
+    .contact-btn     { display:block; width:100%; padding:13px; border-radius:10px;
+                       text-align:center; font-size:14px; font-weight:700;
+                       text-decoration:none; transition:all .2s; margin-bottom:6px; }
+    .btn-ct-contact  { background:#2563eb; color:#fff; }
+    .btn-ct-contact:hover { background:#1d4ed8; }
+    .btn-cm-contact  { background:#e67e22; color:#fff; }
+    .btn-cm-contact:hover { background:#d35400; }
+    .modal-close { width:100%; padding:10px; background:var(--panel2); border:none;
+                   border-radius:10px; color:var(--muted); font-size:13px; cursor:pointer; }
+    .modal-close:hover { background:var(--border); }
+
+    /* ── EMPTY / LOADING ── */
+    .empty { text-align:center; padding:60px 20px; color:var(--muted); }
+    .empty-icon { font-size:48px; margin-bottom:12px; }
+    .empty-title{ font-size:18px; font-weight:700; color:var(--text); margin-bottom:6px; }
+
+    /* ── MOBILE ── */
+    @media (max-width:600px) {
+      .header-inner { gap:8px; }
+      .logo-title   { font-size:15px; }
+      .grid { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; }
+      .filters { top:56px; }
+      .card-name { font-size:11px; }
+      .modal { border-radius:16px 16px 0 0; position:fixed; bottom:0; left:0; right:0;
+               max-width:100%; max-height:85vh; }
+      .modal-bg { align-items:flex-end; padding:0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- DATI INIETTATI DA GITHUB ACTIONS -->
+<script>
+  // Carica dati dal JSON (aggiornato da GitHub Actions)
+  var TRADELIST = null;
+  fetch('./tradelist_data.json?t=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      TRADELIST = data;
+      initPage();
+    })
+    .catch(function(e){
+      document.getElementById('content').innerHTML =
+        '<div class="empty"><div class="empty-icon">❌</div>'
+        +'<div class="empty-title">Errore caricamento dati</div>'
+        +'<p style="color:var(--muted);font-size:13px;margin-top:4px">'+e.message+'</p></div>';
+    });
+</script>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <div class="logo-icon">🃏</div>
+      <div>
+        <div class="logo-title" id="owner-name">Trade List</div>
+        <div class="logo-sub">One Piece TCG</div>
+      </div>
+    </div>
+    <div class="header-links" id="header-links"></div>
+  </div>
+</div>
+
+<!-- Stats bar -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">Carte: <strong id="stat-total">—</strong></div>
+    <div class="stat-item">Set: <strong id="stat-sets">—</strong></div>
+    <div class="updated-at" id="updated-at"></div>
+  </div>
+</div>
+
+<!-- Filtri -->
+<div class="filters">
+  <div class="filters-inner">
+    <div class="filter-row">
+      <input id="search" class="search-input" type="text"
+             placeholder="🔍 Cerca carta, codice o set…"
+             oninput="applyFilters()">
+      <select id="filter-set" class="filter-select" onchange="applyFilters()">
+        <option value="">Tutti i set</option>
+      </select>
+      <select id="filter-cond" class="filter-select" onchange="applyFilters()">
+        <option value="">Tutte le condizioni</option>
+        <option value="NM">NM</option>
+        <option value="LP">LP</option>
+        <option value="MP">MP</option>
+      </select>
+      <select id="filter-rar" class="filter-select" onchange="applyFilters()">
+        <option value="">Tutte le rarità</option>
+        <option value="SEC">SEC</option>
+        <option value="SP">SP</option>
+        <option value="SAR">SAR</option>
+        <option value="SR">SR</option>
+        <option value="R">R</option>
+        <option value="UC">UC</option>
+        <option value="C">C</option>
+        <option value="L">L</option>
+      </select>
+    </div>
+    <div class="filter-chips" id="filter-chips"></div>
+    <div class="results-count" id="results-count"></div>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+  <div id="content">
+    <div class="empty">
+      <div class="empty-icon">⏳</div>
+      <div class="empty-title">Caricamento…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal dettaglio carta -->
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <img id="modal-img" class="modal-img" src="" alt="">
+    <div class="modal-body">
+      <div class="modal-code" id="modal-code"></div>
+      <div class="modal-name" id="modal-name"></div>
+      <div class="modal-pills" id="modal-pills"></div>
+      <div class="modal-price-box">
+        <div>
+          <div class="modal-price-lbl">Prezzo richiesto</div>
+          <div class="modal-price" id="modal-price"></div>
+        </div>
+        <div style="text-align:right">
+          <div class="modal-price-lbl">Disponibili</div>
+          <div class="modal-qty" id="modal-qty"></div>
+        </div>
+      </div>
+      <div class="modal-note" id="modal-note" style="display:none"></div>
+      <a id="modal-btn-ct" class="contact-btn btn-ct-contact" href="#" target="_blank" rel="noopener">
+        💎 Contattami su CardTrader
+      </a>
+      <a id="modal-btn-cm" class="contact-btn btn-cm-contact" href="#" target="_blank" rel="noopener">
+        🛒 Contattami su Cardmarket
+      </a>
+      <button class="modal-close" onclick="closeModal()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+var ALL_CARDS = [];
+var CFG       = {};
+var ACTIVE_CHIPS = new Set();
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (!TRADELIST || !TRADELIST.ok) {
+    document.getElementById('content').innerHTML =
+      '<div class="empty"><div class="empty-icon">❌</div>'
+      +'<div class="empty-title">Dati non disponibili</div></div>';
+    return;
+  }
+
+  ALL_CARDS = TRADELIST.cards || [];
+  CFG       = TRADELIST.config || {};
+
+  // Header
+  document.getElementById('owner-name').textContent =
+    (CFG.ownerName || 'Trade List') + ' — Trade List';
+  document.title = (CFG.ownerName || 'Trade List') + ' — One Piece TCG';
+
+  var links = document.getElementById('header-links');
+  if (CFG.ownerCT) {
+    links.innerHTML += '<a href="'+esc(CFG.ownerCT)+'" target="_blank" class="profile-btn btn-ct">'
+                     + '💎 CardTrader</a>';
+  }
+  if (CFG.ownerCM) {
+    links.innerHTML += '<a href="'+esc(CFG.ownerCM)+'" target="_blank" class="profile-btn btn-cm">'
+                     + '🛒 Cardmarket</a>';
+  }
+
+  // Stats
+  document.getElementById('stat-total').textContent = ALL_CARDS.length;
+  document.getElementById('stat-sets').textContent  = (TRADELIST.bySet||[]).length;
+  if (CFG.updatedAt) {
+    document.getElementById('updated-at').textContent = 'Aggiornato: ' + CFG.updatedAt;
+  }
+
+  // Popola filtro set
+  var setEl = document.getElementById('filter-set');
+  (TRADELIST.bySet||[]).forEach(function(s) {
+    var o = document.createElement('option');
+    o.value = s.set; o.textContent = s.set + ' (' + s.count + ')';
+    setEl.appendChild(o);
+  });
+
+  // Chips rarità rapide
+  var rarChips = ['SEC','SP','SAR','SR','R','L','Foil'];
+  var chipsEl  = document.getElementById('filter-chips');
+  rarChips.forEach(function(r) {
+    var chip = document.createElement('div');
+    chip.className   = 'chip';
+    chip.textContent = r;
+    chip.dataset.val = r;
+    chip.onclick = function() {
+      if (ACTIVE_CHIPS.has(r)) { ACTIVE_CHIPS.delete(r); chip.classList.remove('active'); }
+      else                      { ACTIVE_CHIPS.add(r);    chip.classList.add('active');    }
+      applyFilters();
+    };
+    chipsEl.appendChild(chip);
+  });
+
+  applyFilters();
+});
+
+/* ════════════════════════════════════
+   FILTRI
+════════════════════════════════════ */
+function applyFilters() {
+  var q     = document.getElementById('search').value.toLowerCase().trim();
+  var fSet  = document.getElementById('filter-set').value;
+  var fCond = document.getElementById('filter-cond').value;
+  var fRar  = document.getElementById('filter-rar').value;
+
+  var filtered = ALL_CARDS.filter(function(c) {
+    if (q && !c.nome.toLowerCase().includes(q)
+          && !c.codice.toLowerCase().includes(q)
+          && !c.set.toLowerCase().includes(q)
+          && !c.setName.toLowerCase().includes(q)) return false;
+    if (fSet  && c.set       !== fSet)  return false;
+    if (fCond && c.condizione !== fCond) return false;
+    if (fRar  && c.rarita    !== fRar)  return false;
+    // Chips attive
+    if (ACTIVE_CHIPS.size) {
+      var ok = true;
+      ACTIVE_CHIPS.forEach(function(chip) {
+        if (chip === 'Foil') { if (c.foil !== 'SI') ok = false; }
+        else                 { if (c.rarita !== chip) ok = false; }
+      });
+      if (!ok) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('results-count').textContent =
+    filtered.length + ' di ' + ALL_CARDS.length + ' carte';
+
+  renderCards(filtered);
+}
+
+/* ════════════════════════════════════
+   RENDER GRIGLIA
+════════════════════════════════════ */
+function renderCards(cards) {
+  var content = document.getElementById('content');
+
+  if (!cards.length) {
+    content.innerHTML =
+      '<div class="empty">'
+      +'<div class="empty-icon">🔍</div>'
+      +'<div class="empty-title">Nessuna carta trovata</div>'
+      +'<p style="color:var(--muted);font-size:13px;margin-top:4px">Prova a modificare i filtri</p>'
+      +'</div>';
+    return;
+  }
+
+  // Raggruppa per set
+  var bySet = {};
+  cards.forEach(function(c) {
+    if (!bySet[c.set]) bySet[c.set] = { set:c.set, setName:c.setName, cards:[] };
+    bySet[c.set].cards.push(c);
+  });
+
+  var html = '';
+  Object.values(bySet).forEach(function(s) {
+    html += '<div class="set-section">';
+    html += '<div class="set-header">';
+    html += '<div class="set-name">'+esc(s.set);
+    if (s.setName && s.setName !== s.set) html += ' <span style="font-weight:400;color:var(--muted);font-size:13px">'+esc(s.setName)+'</span>';
+    html += '</div>';
+    html += '<div class="set-count">'+s.cards.length+' carte</div>';
+    html += '<div class="set-line"></div>';
+    html += '</div>';
+    html += '<div class="grid">';
+    s.cards.forEach(function(c, i) {
+      html += renderCard(c);
+    });
+    html += '</div></div>';
+  });
+
+  content.innerHTML = html;
+}
+
+function renderCard(c) {
+  var rarCls = 'rar-' + (c.rarita||'C');
+  var condCls= 'cond-' + (c.condizione||'NM');
+
+  var imgHtml = c.immagine
+    ? '<img class="card-img" src="'+esc(c.immagine)+'" alt="'+esc(c.codice)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML=\'<div class=card-img-placeholder>🃏</div>\'">'
+    : '<div class="card-img-placeholder">🃏</div>';
+
+  var cardData = encodeURIComponent(JSON.stringify(c));
+
+  return '<div class="card" onclick="openModal(decodeURIComponent(\''+cardData.replace(/'/g,"\\'")+'\'))">'
+    +'<div class="card-img-wrap">'
+    + imgHtml
+    +'<div class="badge-overlay">'
+    +(c.foil==='SI'?'<span class="badge-foil">★ FOIL</span>':'')
+    +(c.qty>1?'<span class="badge-qty">×'+c.qty+'</span>':'')
+    +(c.artwork&&c.artwork!=='Base Art'?'<span class="badge-art">'+esc(c.artwork.slice(0,8))+'</span>':'')
+    +'</div>'
+    +(c.condizione?'<span class="badge-cond '+condCls+'">'+esc(c.condizione)+'</span>':'')
+    +'</div>'
+    +'<div class="card-body">'
+    +'<div class="card-code">'+esc(c.codice)+'</div>'
+    +'<div class="card-name">'+esc(c.nome)+'</div>'
+    +'<div class="card-set">'+esc(c.set)+'</div>'
+    +'<div class="card-footer">'
+    +(c.prezzo?'<div><div class="card-price-lbl">€</div><div class="card-price">'+esc(c.prezzo)+'</div></div>':'<div style="color:var(--muted);font-size:11px">Trattabile</div>')
+    +'<span class="card-rar '+rarCls+'">'+esc(c.rarita||'?')+'</span>'
+    +'</div>'
+    +'</div>'
+    +'</div>';
+}
+
+/* ════════════════════════════════════
+   MODAL
+════════════════════════════════════ */
+function openModal(cardJson) {
+  var c = typeof cardJson === 'string' ? JSON.parse(cardJson) : cardJson;
+
+  document.getElementById('modal-img').src   = c.immagine || '';
+  document.getElementById('modal-img').style.display = c.immagine ? 'block' : 'none';
+  document.getElementById('modal-code').textContent = c.codice;
+  document.getElementById('modal-name').textContent = c.nome;
+  document.getElementById('modal-price').textContent= c.prezzo ? '€ '+c.prezzo : 'Trattabile';
+  document.getElementById('modal-qty').textContent  = '×' + c.qty + ' disponibili';
+
+  // Pills
+  var pills = document.getElementById('modal-pills');
+  pills.innerHTML = '';
+  var pillData = [
+    { val:c.set,        cls:'pill-set'  },
+    { val:c.rarita,     cls:'card-rar rar-'+(c.rarita||'C') },
+    { val:c.condizione, cls:c.condizione?'badge-cond cond-'+c.condizione:'' },
+    { val:c.lingua,     cls:'pill-lang' },
+    { val:c.foil==='SI'?'★ Foil':null, cls:'badge-foil' },
+    { val:c.artwork&&c.artwork!=='Base Art'?c.artwork:null, cls:'pill-set' }
+  ];
+  pillData.forEach(function(p) {
+    if (!p.val) return;
+    pills.innerHTML += '<span class="modal-pill '+p.cls+'">'+esc(p.val)+'</span>';
+  });
+
+  // Note
+  var noteEl = document.getElementById('modal-note');
+  if (c.note) { noteEl.textContent = '📝 ' + c.note; noteEl.style.display='block'; }
+  else        { noteEl.style.display = 'none'; }
+
+  // Pulsanti contatto
+  var ctBtn = document.getElementById('modal-btn-ct');
+  var cmBtn = document.getElementById('modal-btn-cm');
+  ctBtn.href = CFG.ownerCT || '#';
+  cmBtn.href = CFG.ownerCM || '#';
+  ctBtn.style.display = CFG.ownerCT ? 'block' : 'none';
+  cmBtn.style.display = CFG.ownerCM ? 'block' : 'none';
+
+  document.getElementById('modal-bg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-bg')) return;
+  document.getElementById('modal-bg').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════
+   HELPERS
+════════════════════════════════════ */
+function esc(t) {
+  return String(t||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+</script>
+</body>
+</html>
