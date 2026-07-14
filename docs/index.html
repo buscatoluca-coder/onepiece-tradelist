@@ -370,7 +370,7 @@ function initPage() {
   });
 
   applyFilters();
-});
+}
 
 /* ════════════════════════════════════
    FILTRI
@@ -411,9 +411,7 @@ function applyFilters() {
    RENDER GRIGLIA
 ════════════════════════════════════ */
 function renderCards(cards) {
-  // Salva le carte filtrate per il modal
   FILTERED_CARDS = cards;
-
   var content = document.getElementById('content');
 
   if (!cards.length) {
@@ -426,13 +424,11 @@ function renderCards(cards) {
     return;
   }
 
-  // Costruisce mappa globalIndex per set
   var bySet   = {};
-  var indexMap = {}; // codice+gameId → indice globale
   cards.forEach(function(c, i) {
     if (!bySet[c.set]) bySet[c.set] = { set:c.set, setName:c.setName, cards:[], indices:[] };
     bySet[c.set].cards.push(c);
-    bySet[c.set].indices.push(i); // indice nella lista filtrata
+    bySet[c.set].indices.push(i);
   });
 
   var html = '';
@@ -465,48 +461,7 @@ function renderCard(c, globalIndex) {
     ? '<img class="card-img" src="'+esc(c.immagine)+'" alt="'+esc(c.codice)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML=\'<div class=card-img-placeholder>🃏</div>\'">'
     : '<div class="card-img-placeholder">🃏</div>';
 
-  // Usa l'indice globale invece di serializzare la carta nell'attributo
-  return '<div class="card" onclick="function openModalByIndex(idx) {
-  var c = FILTERED_CARDS[idx];
-  if (!c) return;
-  openModal(c);
-}
-
-function openModal(c) {
-  document.getElementById('modal-img').src            = c.immagine || '';
-  document.getElementById('modal-img').style.display  = c.immagine ? 'block' : 'none';
-  document.getElementById('modal-code').textContent   = c.codice;
-  document.getElementById('modal-name').textContent   = c.nome;
-  document.getElementById('modal-price').textContent  = c.prezzo ? '€ ' + c.prezzo : 'Trattabile';
-  document.getElementById('modal-qty').textContent    = '×' + c.qty + ' disponibili';
-
-  var pills = document.getElementById('modal-pills');
-  pills.innerHTML = '';
-  var pillData = [
-    { val:c.set,        cls:'pill-set'  },
-    { val:c.rarita,     cls:'card-rar rar-'+(c.rarita||'C') },
-    { val:c.condizione, cls:c.condizione?'badge-cond cond-'+c.condizione:'' },
-    { val:c.lingua,     cls:'pill-lang' },
-    { val:c.foil==='SI'?'★ Foil':null,                            cls:'badge-foil' },
-    { val:c.artwork&&c.artwork!=='Base Art'?c.artwork:null,        cls:'pill-set'   }
-  ];
-  pillData.forEach(function(p) {
-    if (!p.val) return;
-    pills.innerHTML += '<span class="modal-pill '+p.cls+'">'+esc(p.val)+'</span>';
-  });
-
-  var noteEl = document.getElementById('modal-note');
-  if (c.note) { noteEl.textContent = '📝 ' + c.note; noteEl.style.display='block'; }
-  else        { noteEl.style.display = 'none'; }
-
-  document.getElementById('modal-btn-ct').href          = CFG.ownerCT || '#';
-  document.getElementById('modal-btn-cm').href          = CFG.ownerCM || '#';
-  document.getElementById('modal-btn-ct').style.display = CFG.ownerCT ? 'block' : 'none';
-  document.getElementById('modal-btn-cm').style.display = CFG.ownerCM ? 'block' : 'none';
-
-  document.getElementById('modal-bg').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}ByIndex('+globalIndex+')">'
+  return '<div class="card" onclick="openModalByIndex('+globalIndex+')">'
     +'<div class="card-img-wrap">'
     + imgHtml
     +'<div class="badge-overlay">'
@@ -553,7 +508,7 @@ function openModal(c) {
     { val:c.rarita,     cls:'card-rar rar-'+(c.rarita||'C') },
     { val:c.condizione, cls:c.condizione?'badge-cond cond-'+c.condizione:'' },
     { val:c.lingua,     cls:'pill-lang' },
-    { val:c.foil==='SI'?'★ Foil':null,                            cls:'badge-foil' },
+    { val:c.foil==='SI'?'★ Foil':null,                             cls:'badge-foil' },
     { val:c.artwork&&c.artwork!=='Base Art'?c.artwork:null,        cls:'pill-set'   }
   ];
   pillData.forEach(function(p) {
