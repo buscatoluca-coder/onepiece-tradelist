@@ -310,6 +310,7 @@
 var ALL_CARDS = [];
 var CFG       = {};
 var ACTIVE_CHIPS = new Set();
+var FILTERED_CARDS = [];
 
 function initPage() {
   if (!TRADELIST || !TRADELIST.ok) {
@@ -410,6 +411,9 @@ function applyFilters() {
    RENDER GRIGLIA
 ════════════════════════════════════ */
 function renderCards(cards) {
+  // Salva le carte filtrate per il modal
+  FILTERED_CARDS = cards;
+
   var content = document.getElementById('content');
 
   if (!cards.length) {
@@ -422,11 +426,13 @@ function renderCards(cards) {
     return;
   }
 
-  // Raggruppa per set
-  var bySet = {};
-  cards.forEach(function(c) {
-    if (!bySet[c.set]) bySet[c.set] = { set:c.set, setName:c.setName, cards:[] };
+  // Costruisce mappa globalIndex per set
+  var bySet   = {};
+  var indexMap = {}; // codice+gameId → indice globale
+  cards.forEach(function(c, i) {
+    if (!bySet[c.set]) bySet[c.set] = { set:c.set, setName:c.setName, cards:[], indices:[] };
     bySet[c.set].cards.push(c);
+    bySet[c.set].indices.push(i); // indice nella lista filtrata
   });
 
   var html = '';
@@ -434,14 +440,16 @@ function renderCards(cards) {
     html += '<div class="set-section">';
     html += '<div class="set-header">';
     html += '<div class="set-name">'+esc(s.set);
-    if (s.setName && s.setName !== s.set) html += ' <span style="font-weight:400;color:var(--muted);font-size:13px">'+esc(s.setName)+'</span>';
+    if (s.setName && s.setName !== s.set) {
+      html += ' <span style="font-weight:400;color:var(--muted);font-size:13px">'+esc(s.setName)+'</span>';
+    }
     html += '</div>';
     html += '<div class="set-count">'+s.cards.length+' carte</div>';
     html += '<div class="set-line"></div>';
     html += '</div>';
     html += '<div class="grid">';
     s.cards.forEach(function(c, i) {
-      html += renderCard(c);
+      html += renderCard(c, s.indices[i]);
     });
     html += '</div></div>';
   });
@@ -449,17 +457,56 @@ function renderCards(cards) {
   content.innerHTML = html;
 }
 
-function renderCard(c) {
-  var rarCls = 'rar-' + (c.rarita||'C');
-  var condCls= 'cond-' + (c.condizione||'NM');
+function renderCard(c, globalIndex) {
+  var rarCls  = 'rar-'  + (c.rarita    ||'C');
+  var condCls = 'cond-' + (c.condizione||'NM');
 
   var imgHtml = c.immagine
     ? '<img class="card-img" src="'+esc(c.immagine)+'" alt="'+esc(c.codice)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML=\'<div class=card-img-placeholder>🃏</div>\'">'
     : '<div class="card-img-placeholder">🃏</div>';
 
-  var cardData = encodeURIComponent(JSON.stringify(c));
+  // Usa l'indice globale invece di serializzare la carta nell'attributo
+  return '<div class="card" onclick="function openModalByIndex(idx) {
+  var c = FILTERED_CARDS[idx];
+  if (!c) return;
+  openModal(c);
+}
 
-  return '<div class="card" onclick="openModal(decodeURIComponent(\''+cardData.replace(/'/g,"\\'")+'\'))">'
+function openModal(c) {
+  document.getElementById('modal-img').src            = c.immagine || '';
+  document.getElementById('modal-img').style.display  = c.immagine ? 'block' : 'none';
+  document.getElementById('modal-code').textContent   = c.codice;
+  document.getElementById('modal-name').textContent   = c.nome;
+  document.getElementById('modal-price').textContent  = c.prezzo ? '€ ' + c.prezzo : 'Trattabile';
+  document.getElementById('modal-qty').textContent    = '×' + c.qty + ' disponibili';
+
+  var pills = document.getElementById('modal-pills');
+  pills.innerHTML = '';
+  var pillData = [
+    { val:c.set,        cls:'pill-set'  },
+    { val:c.rarita,     cls:'card-rar rar-'+(c.rarita||'C') },
+    { val:c.condizione, cls:c.condizione?'badge-cond cond-'+c.condizione:'' },
+    { val:c.lingua,     cls:'pill-lang' },
+    { val:c.foil==='SI'?'★ Foil':null,                            cls:'badge-foil' },
+    { val:c.artwork&&c.artwork!=='Base Art'?c.artwork:null,        cls:'pill-set'   }
+  ];
+  pillData.forEach(function(p) {
+    if (!p.val) return;
+    pills.innerHTML += '<span class="modal-pill '+p.cls+'">'+esc(p.val)+'</span>';
+  });
+
+  var noteEl = document.getElementById('modal-note');
+  if (c.note) { noteEl.textContent = '📝 ' + c.note; noteEl.style.display='block'; }
+  else        { noteEl.style.display = 'none'; }
+
+  document.getElementById('modal-btn-ct').href          = CFG.ownerCT || '#';
+  document.getElementById('modal-btn-cm').href          = CFG.ownerCM || '#';
+  document.getElementById('modal-btn-ct').style.display = CFG.ownerCT ? 'block' : 'none';
+  document.getElementById('modal-btn-cm').style.display = CFG.ownerCM ? 'block' : 'none';
+
+  document.getElementById('modal-bg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}ByIndex('+globalIndex+')">'
     +'<div class="card-img-wrap">'
     + imgHtml
     +'<div class="badge-overlay">'
@@ -474,7 +521,8 @@ function renderCard(c) {
     +'<div class="card-name">'+esc(c.nome)+'</div>'
     +'<div class="card-set">'+esc(c.set)+'</div>'
     +'<div class="card-footer">'
-    +(c.prezzo?'<div><div class="card-price-lbl">€</div><div class="card-price">'+esc(c.prezzo)+'</div></div>':'<div style="color:var(--muted);font-size:11px">Trattabile</div>')
+    +(c.prezzo?'<div><div class="card-price-lbl">€</div><div class="card-price">'+esc(c.prezzo)+'</div></div>'
+              :'<div style="color:var(--muted);font-size:11px">Trattabile</div>')
     +'<span class="card-rar '+rarCls+'">'+esc(c.rarita||'?')+'</span>'
     +'</div>'
     +'</div>'
@@ -484,17 +532,20 @@ function renderCard(c) {
 /* ════════════════════════════════════
    MODAL
 ════════════════════════════════════ */
-function openModal(cardJson) {
-  var c = typeof cardJson === 'string' ? JSON.parse(cardJson) : cardJson;
+function openModalByIndex(idx) {
+  var c = FILTERED_CARDS[idx];
+  if (!c) return;
+  openModal(c);
+}
 
-  document.getElementById('modal-img').src   = c.immagine || '';
-  document.getElementById('modal-img').style.display = c.immagine ? 'block' : 'none';
-  document.getElementById('modal-code').textContent = c.codice;
-  document.getElementById('modal-name').textContent = c.nome;
-  document.getElementById('modal-price').textContent= c.prezzo ? '€ '+c.prezzo : 'Trattabile';
-  document.getElementById('modal-qty').textContent  = '×' + c.qty + ' disponibili';
+function openModal(c) {
+  document.getElementById('modal-img').src            = c.immagine || '';
+  document.getElementById('modal-img').style.display  = c.immagine ? 'block' : 'none';
+  document.getElementById('modal-code').textContent   = c.codice;
+  document.getElementById('modal-name').textContent   = c.nome;
+  document.getElementById('modal-price').textContent  = c.prezzo ? '€ ' + c.prezzo : 'Trattabile';
+  document.getElementById('modal-qty').textContent    = '×' + c.qty + ' disponibili';
 
-  // Pills
   var pills = document.getElementById('modal-pills');
   pills.innerHTML = '';
   var pillData = [
@@ -502,26 +553,22 @@ function openModal(cardJson) {
     { val:c.rarita,     cls:'card-rar rar-'+(c.rarita||'C') },
     { val:c.condizione, cls:c.condizione?'badge-cond cond-'+c.condizione:'' },
     { val:c.lingua,     cls:'pill-lang' },
-    { val:c.foil==='SI'?'★ Foil':null, cls:'badge-foil' },
-    { val:c.artwork&&c.artwork!=='Base Art'?c.artwork:null, cls:'pill-set' }
+    { val:c.foil==='SI'?'★ Foil':null,                            cls:'badge-foil' },
+    { val:c.artwork&&c.artwork!=='Base Art'?c.artwork:null,        cls:'pill-set'   }
   ];
   pillData.forEach(function(p) {
     if (!p.val) return;
     pills.innerHTML += '<span class="modal-pill '+p.cls+'">'+esc(p.val)+'</span>';
   });
 
-  // Note
   var noteEl = document.getElementById('modal-note');
   if (c.note) { noteEl.textContent = '📝 ' + c.note; noteEl.style.display='block'; }
   else        { noteEl.style.display = 'none'; }
 
-  // Pulsanti contatto
-  var ctBtn = document.getElementById('modal-btn-ct');
-  var cmBtn = document.getElementById('modal-btn-cm');
-  ctBtn.href = CFG.ownerCT || '#';
-  cmBtn.href = CFG.ownerCM || '#';
-  ctBtn.style.display = CFG.ownerCT ? 'block' : 'none';
-  cmBtn.style.display = CFG.ownerCM ? 'block' : 'none';
+  document.getElementById('modal-btn-ct').href          = CFG.ownerCT || '#';
+  document.getElementById('modal-btn-cm').href          = CFG.ownerCM || '#';
+  document.getElementById('modal-btn-ct').style.display = CFG.ownerCT ? 'block' : 'none';
+  document.getElementById('modal-btn-cm').style.display = CFG.ownerCM ? 'block' : 'none';
 
   document.getElementById('modal-bg').classList.add('open');
   document.body.style.overflow = 'hidden';
