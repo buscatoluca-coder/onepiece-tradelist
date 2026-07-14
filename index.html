@@ -2,7 +2,6 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trade List — One Piece TCG</title>
   <meta name="description" content="Carte One Piece TCG disponibili per scambio">
@@ -458,8 +457,10 @@ function renderCard(c, globalIndex) {
   var rarCls  = 'rar-'  + (c.rarita    ||'C');
   var condCls = 'cond-' + (c.condizione||'NM');
 
+  var imgUrl = c.immagine ? 'https://images.weserv.nl/?url=' + encodeURIComponent(c.immagine) : '';
+  
   var imgHtml = c.immagine
-    ? '<img class="card-img" src="'+esc(c.immagine)+'" alt="'+esc(c.codice)+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.innerHTML=\'<div class=card-img-placeholder>🃏</div>\'">'
+    ? '<img class="card-img" src="'+imgUrl+'" alt="'+esc(c.codice)+'" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=card-img-placeholder>🃏</div>\'">'
     : '<div class="card-img-placeholder">🃏</div>';
 
   return '<div class="card" onclick="openModalByIndex('+globalIndex+')">'
